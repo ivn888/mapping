@@ -1,4 +1,12 @@
-# read_dbf adopted from http://code.activestate.com/recipes/362715/
+'''
+A class that handles reading of shapefiles
+
+Credit: the read_dbf is adopted from http://code.activestate.com/recipes/362715/
+
+Author
+Ningchuan Xiao
+ncxiao@gmail.com
+'''
 
 import struct, datetime, decimal, itertools
 from os.path import isfile
@@ -44,6 +52,15 @@ def clockwise(polygon):
     return A<0
 
 class shapex:
+    '''
+    A class for points in Cartesian coordinate systems.
+
+    Examples
+
+    >>> fname = '/Users/xiao/lib/gisalgs/data/uscnty48area.shp'
+    >>> shp = shapex(fname)
+    >>> print(shp[60])
+    '''
     def __init__(self, fname):
         if not fname.endswith('.shp'):
             raise Exception('Need a .shp file.')
@@ -279,8 +296,6 @@ if __name__ == '__main__':
     # fname = '/Users/xiao/lib/gisalgs/data/ne_110m_populated_places.shp'
     shp = shapex(fname)
     print('Shape type:', shp.shape_type)
-    # for f in shp:
-    #     print(f)
     print(shp.bounds)
     # print(shp[60])
     # print(shp[100])
