@@ -103,7 +103,7 @@ class shapex:
         if not self.shape_type in supported_types:
             raise Exception(self.shape_type + ' shape type not supported')
         if i<0 or i+1>self.num_rec:
-            raise Exception('Feature index out of range')
+            raise Exception('Feature index out of range (' + str(i) + ')')
         pos = self.index[i]
         self.f_shp.seek(pos[0] + 8) # skip record hearder, which is not useful
 
@@ -201,7 +201,7 @@ class shapex:
             }
         }
         if num_parts == 1:
-            polygon = [(points[i], points[i+1]) for i in range(0, len(points), 2)]
+            polygon = [[(points[i], points[i+1]) for i in range(0, len(points), 2)]]
             feature['geometry']['coordinates'] = polygon
         else:
             directions = []
@@ -231,11 +231,11 @@ class shapex:
     def __iter__(self):
         return self
     def __next__(self):
-        feature = self.__getitem__(self.this_feature_num)
-        self.this_feature_num += 1
-        if self.this_feature_num > self.num_rec:
+        if self.this_feature_num >= self.num_rec:
             self.this_feature_num = 0
             raise StopIteration
+        feature = self.__getitem__(self.this_feature_num)
+        self.this_feature_num += 1
         return feature
     def close(self):
         self.f_shp.close()
