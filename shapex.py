@@ -21,8 +21,9 @@ Author
     ncxiao@gmail.com
 '''
 
-import struct, datetime, decimal
+from struct import unpack, calcsize
 from os.path import isfile
+from datetime import date
 
 shapefile_types = {
   0: 'Null Shape',
@@ -85,14 +86,14 @@ class shapex:
 
     def open_shapefile(self):
         self.f_shx = open(self.fname_shx, 'rb')
-        h1 = struct.unpack('>7i', self.f_shx.read(28))
-        h2 = struct.unpack('<2i 8d', self.f_shx.read(72))
+        h1 = unpack('>7i', self.f_shx.read(28))
+        h2 = unpack('<2i 8d', self.f_shx.read(72))
         file_length = h1[-1]
         self.num_rec = (file_length-50)//4
 
         self.f_shp = open(self.fname_shp, 'rb')
-        h1 = struct.unpack('>7i', self.f_shp.read(28))     # BIG
-        h2 = struct.unpack('<2i 8d', self.f_shp.read(72))  # LITTLE
+        h1 = unpack('>7i', self.f_shp.read(28))     # BIG
+        h2 = unpack('<2i 8d', self.f_shp.read(72))  # LITTLE
 
         self.file_length = h1[-1]
         self.version = h2[0]
@@ -108,24 +109,24 @@ class shapex:
         self.this_feature_num = 0
         # get (offset, content length) pairs from shx
         # remember each record has a header of 8 bytes
-        index = struct.unpack('>'+'i'*self.num_rec*2, self.f_shx.read(self.num_rec*4*4))
+        index = unpack('>'+'i'*self.num_rec*2, self.f_shx.read(self.num_rec*4*4))
         self.index = [(index[i]*2, index[i+1]*2) for i in range(0, len(index), 2)]
 
         # get schema, etc.
         self.f_dbf = open(self.fname_dbf, 'rb')
-        dbf_numrec, lenheader = struct.unpack('<xxxxLH22x', self.f_dbf.read(32))
+        dbf_numrec, lenheader = unpack('<xxxxLH22x', self.f_dbf.read(32))
         self.numfields = (lenheader - 33) // 32
         if dbf_numrec != self.num_rec:
             raise Exception('SHP and DBF have different numbers of records')
         self.fields = []
         for fieldno in range(self.numfields):
-            name, dtype, size, deci = struct.unpack('<11sc4xBB14x', self.f_dbf.read(32))
+            name, dtype, size, deci = unpack('<11sc4xBB14x', self.f_dbf.read(32))
             name = name.replace(b'\0', b'')       # take out \x00
             self.fields.append((name.decode('ascii'), dtype.decode('ascii'), size, deci))
         self.f_dbf.read(1) # skip the terminator
         self.fields.insert(0, ('DeletionFlag', 'C', 1, 0))
         self.formatstr = ''.join(['%ds' % fieldinfo[2] for fieldinfo in self.fields])
-        self.formatsize = struct.calcsize(self.formatstr)
+        self.formatsize = calcsize(self.formatstr)
         self.dbf_header_length = 32 + 32*self.numfields + 1
 
     def __getitem__(self, i):
@@ -165,7 +166,7 @@ class shapex:
     def read_dbf(self, i):
         # Note: dtypes of D, L are note tested
         self.f_dbf.seek(self.dbf_header_length + i * self.formatsize)
-        record = struct.unpack(self.formatstr, self.f_dbf.read(self.formatsize))
+        record = unpack(self.formatstr, self.f_dbf.read(self.formatsize))
         if record[0] == ' ':
             return ' ' * self.formatsize
         result = []
@@ -178,14 +179,14 @@ class shapex:
                 if value == '':
                     value = 0
                 elif deci:
-                    value = float(value) #decimal.Decimal(value)
+                    value = float(value)
                 else:
                     value = int(value)
             elif dtype == 'C':
                 value = value.rstrip()
             elif dtype == 'D':
                 y, m, d = int(value[:4]), int(value[4:6]), int(value[6:8])
-                value = datetime.date(y, m, d)
+                value = date(y, m, d)
             elif dtype == 'L':
                 value = (value in 'YyTt' and 'T') or (value in 'NnFf' and 'F') or '?'
             elif dtype == 'F':
@@ -197,7 +198,7 @@ class shapex:
         return properties
 
     def readpoint(self):
-        point = struct.unpack('<idd', self.f_shp.read(4+8+8))
+        point = unpack('<idd', self.f_shp.read(4+8+8))
         feature = {
             "type": "Feature",
             "geometry": {
@@ -209,10 +210,10 @@ class shapex:
 
     def readmultipoint(self):
         # This function is not tested
-        content_head = struct.unpack('<i 4d i', self.f_shp.read(40))
+        content_head = unpack('<i 4d i', self.f_shp.read(40))
         shape_type = content_head[0]
         num_points = content_head[5]
-        points = struct.unpack('<'+'d'*num_points*2, self.f_shp.read(8*2*num_points))
+        points = unpack('<'+'d'*num_points*2, self.f_shp.read(8*2*num_points))
         multipoints = [(points[i], points[i+1]) for i in range(0, len(points), 2)]
         feature = {
             "type": "Feature",
@@ -224,12 +225,12 @@ class shapex:
         return feature
 
     def readpolygon(self):
-        content_head = struct.unpack('<i 4d 2i', self.f_shp.read(44))
+        content_head = unpack('<i 4d 2i', self.f_shp.read(44))
         shape_type = content_head[0]
         num_parts = content_head[5]
         num_points = content_head[6]
-        parts = struct.unpack('<'+'i'*num_parts, self.f_shp.read(4*num_parts))
-        points = struct.unpack('<'+'d'*num_points*2, self.f_shp.read(8*2*num_points))
+        parts = unpack('<'+'i'*num_parts, self.f_shp.read(4*num_parts))
+        points = unpack('<'+'d'*num_points*2, self.f_shp.read(8*2*num_points))
         feature = {
             "type": "Feature",
             "geometry": {
@@ -319,5 +320,5 @@ if __name__ == '__main__':
     # print(shp[60])
     # print(shp[100])
     print(shp.schema)
-    print(len(shp[12:15]))
+    print(len(shp[12:17]))
     shp.close()
