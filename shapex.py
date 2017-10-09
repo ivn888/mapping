@@ -98,6 +98,7 @@ class shapex:
         self.file_length = h1[-1]
         self.version = h2[0]
         self.shape_type = shapefile_types[h2[1]]
+        # self.xmin, self.ymin, self.xmax, self.ymax, self.zmin, self.zmax, self.mmin, self.mmax = h2[2:10]
         self.xmin = h2[2]
         self.ymin = h2[3]
         self.xmax = h2[4]
@@ -316,9 +317,9 @@ if __name__ == '__main__':
     # fname = '/Users/xiao/lib/gisalgs/data/ne_110m_populated_places.shp'
     shp = shapex(fname)
     print('Shape type:', shp.shape_type)
+    print(shp.schema)
     print(shp.bounds)
     # print(shp[60])
     # print(shp[100])
-    print(shp.schema)
     print(len(shp[12:17]))
     shp.close()
