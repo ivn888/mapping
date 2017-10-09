@@ -4,7 +4,15 @@ A class and related functions that handle reading of shapefiles
 It now only supports four types of shapefile:
     Point, MultiPoint (not tested), PolyLine, Polygon.
 
-Iterator works. But it doesn't support slicing.
+History
+
+    October 9, 2017
+        Support slicing!
+
+    October 8, 2017
+        First version.
+        Supports four types.
+        No slicing
 
 Credit: the read_dbf is adopted from http://code.activestate.com/recipes/362715/
 
@@ -13,7 +21,7 @@ Author
     ncxiao@gmail.com
 '''
 
-import struct, datetime, decimal, itertools
+import struct, datetime, decimal
 from os.path import isfile
 
 shapefile_types = {
@@ -123,29 +131,36 @@ class shapex:
     def __getitem__(self, i):
         if not self.shape_type in supported_types:
             raise Exception(self.shape_type + ' shape type not supported')
-        if i<0 or i+1>self.num_rec:
-            raise Exception('Feature index out of range (' + str(i) + ')')
-        pos = self.index[i]
-        self.f_shp.seek(pos[0] + 8) # skip record hearder, which is not useful
+        if isinstance(i, slice):
+            return [self[j] for j in range(*i.indices(len(self)))]
+        elif isinstance(i, int):
+            if i<0:
+                i = self.num_rec + i
+            if i<0 or i+1>self.num_rec:
+                raise Exception('Feature index out of range (' + str(i) + ')')
+            pos = self.index[i]
+            self.f_shp.seek(pos[0] + 8) # skip record hearder, which is not useful
 
-        if self.shape_type == 'Polygon':
-            feature = self.readpolygon()
-        if self.shape_type == 'PolyLine':
-            feature = self.readpolygon()
-            if feature['geometry']['type'] == 'MultiPolygon':
-                feature['geometry']['type'] = 'MultiLineString'
-            else:
-                feature['geometry']['type'] = 'LineString'
-        if self.shape_type == 'Point':
-            feature = self.readpoint()
-        if self.shape_type == 'MultiPoint':
-            feature = self.readmultipoint()
+            if self.shape_type == 'Polygon':
+                feature = self.readpolygon()
+            if self.shape_type == 'PolyLine':
+                feature = self.readpolygon()
+                if feature['geometry']['type'] == 'MultiPolygon':
+                    feature['geometry']['type'] = 'MultiLineString'
+                else:
+                    feature['geometry']['type'] = 'LineString'
+            if self.shape_type == 'Point':
+                feature = self.readpoint()
+            if self.shape_type == 'MultiPoint':
+                feature = self.readmultipoint()
 
-        # get properties here.
-        properties = self.read_dbf(i)
-        feature['properties'] = properties
-        feature['id'] = i
-        return feature
+            # get properties here.
+            properties = self.read_dbf(i)
+            feature['properties'] = properties
+            feature['id'] = i
+            return feature
+        else:
+            raise TypeError('Invalid index')
 
     def read_dbf(self, i):
         # Note: dtypes of D, L are note tested
@@ -154,7 +169,7 @@ class shapex:
         if record[0] == ' ':
             return ' ' * self.formatsize
         result = []
-        for (name, dtype, size, deci), value in itertools.zip_longest(self.fields, record):
+        for (name, dtype, size, deci), value in zip(self.fields, record):
             value = value.decode('ascii')
             if name == 'DeletionFlag':
                 continue
@@ -304,4 +319,5 @@ if __name__ == '__main__':
     # print(shp[60])
     # print(shp[100])
     print(shp.schema)
+    print(len(shp[12:15]))
     shp.close()
