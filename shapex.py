@@ -1,11 +1,16 @@
 '''
-A class that handles reading of shapefiles
+A class and related functions that handle reading of shapefiles
+
+It now only supports four types of shapefile:
+    Point, MultiPoint (not tested), PolyLine, Polygon.
+
+Iterator works. But it doesn't support slicing.
 
 Credit: the read_dbf is adopted from http://code.activestate.com/recipes/362715/
 
 Author
-Ningchuan Xiao
-ncxiao@gmail.com
+    Ningchuan Xiao
+    ncxiao@gmail.com
 '''
 
 import struct, datetime, decimal, itertools
@@ -48,7 +53,6 @@ def clockwise(polygon):
         p2 = polygon[i+1]
         ai = p1[0] * p2[1] - p2[0] * p1[1]
         A += ai
-    # A = A/2.0
     return A<0
 
 class shapex:
