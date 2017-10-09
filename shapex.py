@@ -14,7 +14,7 @@ History
         Supports four types.
         No slicing
 
-Credit: the read_dbf is adopted from http://code.activestate.com/recipes/362715/
+Credit: the read_dbf method is adopted from http://code.activestate.com/recipes/362715/
 
 Author
     Ningchuan Xiao
