@@ -319,6 +319,8 @@ if __name__ == '__main__':
     print('Shape type:', shp.shape_type)
     print(shp.schema)
     print(shp.bounds)
+    for f in shp:
+        pass
     # print(shp[60])
     # print(shp[100])
     print(len(shp[12:17]))
